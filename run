@@ -1,0 +1,7 @@
+#!/bin/sh
+if ! brew ls --versions yarn > /dev/null; then
+    brew install yarn
+fi
+yarn install
+node generate.js -t explain-template.png -o explain-outputs inputs/*
+node generate.js -t rate-template.png -o rate-outputs inputs/*
