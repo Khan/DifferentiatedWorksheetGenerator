@@ -52,8 +52,11 @@ async function drawImages() {
     };
     drawImage(imageA, template1Frame);
     drawImage(imageB, template2Frame);
-
-    const outputPath = path.join(program.outputPath, `${nameA}-${nameB}.jpg`);
+    var templateName = program.templatePath[0]; // grabbing first letter of template file name, e.g.: r for rate, e for explain
+    const outputPath = path.join(
+      program.outputPath,
+      `${templateName}-${nameA}-${nameB}.jpg`
+    );
     await Promise.promisify(output.write, { context: output })(outputPath);
     console.log(`Wrote ${outputPath}`);
   }
