@@ -4,9 +4,31 @@ const path = require("path");
 const program = require("commander");
 const Promise = require("bluebird");
 
+const cycle = (inputArray, shiftLength) => {
+  const modularShiftLength = shiftLength % inputArray.length;
+  return [
+    ...inputArray.slice(modularShiftLength),
+    ...inputArray.slice(0, modularShiftLength)
+  ];
+};
+
 // TODO(andy): Maybe make these command-line arguments.
-const template1Frame = { x: 69, y: 185, width: 556, height: 707 };
-const template2Frame = { x: 646, y: 185, width: 556, height: 707 };
+const template1Frame = {
+  x: 69,
+  y: 185,
+  width: 556,
+  height: 707
+};
+const template2Frame = {
+  x: 646,
+  y: 185,
+  width: 556,
+  height: 707
+};
+const labelPosition = {
+  x: 70,
+  dyFromBottom: 70
+};
 
 program
   .option("-t, --templatePath <templatePath>", "Template image path")
@@ -14,11 +36,31 @@ program
     "-o, --outputPath <outputPath>",
     "Path to output differentiated images"
   )
+  .option(
+    "--shiftA <shiftA>",
+    "Index length by which to shift the input array to choose the first other students' work for that student"
+  )
+  .option(
+    "--shiftB <shiftB>",
+    "Index length by which to shift the input array to choose the second other students' work for that student"
+  )
   .arguments("<inputPaths...>")
   .parse(process.argv);
 
 if (!program.outputPath) {
   console.log("An output path is required.");
+  program.outputHelp();
+  process.exit(1);
+}
+
+if (!program.shiftA) {
+  console.log("A shiftA is required.");
+  program.outputHelp();
+  process.exit(1);
+}
+
+if (!program.shiftB) {
+  console.log("A shiftB is required.");
   program.outputHelp();
   process.exit(1);
 }
@@ -41,9 +83,17 @@ async function drawImages() {
     const image = await jimp.read(inputPath);
     inputs.push([path.parse(inputPath).name, image]);
   }
-  const inputCombinations = generatorics.combination(inputs, 2);
 
-  for (let [[nameA, imageA], [nameB, imageB]] of inputCombinations) {
+  const shiftedInputsA = cycle(inputs, program.shiftA);
+  const shiftedInputsB = cycle(inputs, program.shiftB);
+
+  const font = await jimp.loadFont(jimp.FONT_SANS_16_BLACK);
+
+  for (let index = 0; index < inputs.length; index++) {
+    const targetName = inputs[index][0];
+    const [nameA, imageA] = shiftedInputsA[index];
+    const [nameB, imageB] = shiftedInputsB[index];
+
     const output = template.clone();
     const drawImage = (image, templateFrame) => {
       image.background(0xffffffff);
@@ -52,12 +102,22 @@ async function drawImages() {
     };
     drawImage(imageA, template1Frame);
     drawImage(imageB, template2Frame);
-    var templateName = program.templatePath[0]; // grabbing first letter of template file name, e.g.: r for rate, e for explain
+
+    const templateName = program.templatePath[0]; // grabbing first letter of template file name, e.g.: r for rate, e for explain
+    output.print(
+      font,
+      labelPosition.x,
+      template.bitmap.height - labelPosition.dyFromBottom,
+      targetName
+    );
+
     const outputPath = path.join(
       program.outputPath,
-      `${templateName}-${nameA}-${nameB}.jpg`
+      `${templateName}-${targetName}-${nameA}-${nameB}.jpg`
     );
-    await Promise.promisify(output.write, { context: output })(outputPath);
+    await Promise.promisify(output.write, {
+      context: output
+    })(outputPath);
     console.log(`Wrote ${outputPath}`);
   }
 }

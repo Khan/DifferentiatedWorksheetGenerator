@@ -4,6 +4,6 @@ if ! brew ls --versions yarn > /dev/null; then
 fi
 yarn install
 mkdir -p explain-outputs
-node generate.js -t explain-template.png -o explain-outputs inputs/*
+node generate.js -t explain-template.png -o explain-outputs --shiftA 5 --shiftB 7 inputs/*
 mkdir -p rate-outputs
-node generate.js -t rate-template.png -o rate-outputs inputs/*
+node generate.js -t rate-template.png -o rate-outputs --shiftA 13 --shiftB 17 inputs/*
